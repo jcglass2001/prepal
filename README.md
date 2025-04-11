@@ -15,7 +15,7 @@
 - Grocery List Generator: Automatically creates a shopping list based on the meal plan
 
 
-# Stretch Goals
+## Stretch Goals
 - ML-based recommendations
 - Nutrition tracking
 - Voice input for meal planning
