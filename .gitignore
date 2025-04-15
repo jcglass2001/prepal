@@ -1,2 +1,4 @@
 .env
-./etl/venv/
+etl/venv/
+etl/config/__pycache__/ 
+etl/consumers/__pycache__/ 
