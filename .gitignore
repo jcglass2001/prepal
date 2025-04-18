@@ -2,3 +2,4 @@
 etl/venv/
 etl/config/__pycache__/ 
 etl/consumers/__pycache__/ 
+requirements.txt
