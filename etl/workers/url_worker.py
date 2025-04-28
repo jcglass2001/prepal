@@ -20,12 +20,12 @@ def main():
         if payload.get('media_type') == 'website_url':
             logging.info(f"Received submission: {payload['source']}")
             try:
-                logging.info("Processing payload...")
+                logging.info("Processing url ...")
                 # process_video_payload(payload)
             except Exception as e:
-                logging.error(f"Failed to process payload: {e}")
+                logging.error(f"Failed to process url: {e}")
     except KeyboardInterrupt:
-        logging.warn(f"KeyboardInterrupt: {GROUP_ID} no longer listening on topic {consumer.subscription()}")
+        logging.warning(f"KeyboardInterrupt: {GROUP_ID} no longer listening on topic {consumer.subscription()}")
     except Exception as e:
         logging.error(f"An error occurred: {e}")
     finally:

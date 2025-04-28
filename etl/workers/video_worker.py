@@ -17,15 +17,22 @@ def main():
     try:
      for message in consumer:
         payload = message.value
-        if payload.get('media_type') == 'website_url':
+        if payload.get('media_type') == 'video_url':
             logging.info(f"Received submission: {payload['source']}")
             try:
-                logging.info("Processing payload...")
-                # process_video_payload(payload)
+                logging.info("Processing url...")
+                # process_video_url(payload)
             except Exception as e:
-                logging.error(f"Failed to process payload: {e}")
+                logging.error(f"Failed to process url: {e}")
+        elif payload.get('media_type') == 'video_file':
+                logging.info(f"Received submission: {payload['source']}")
+                try:
+                    logging.info("Processing file...")
+                    # process_video_file()
+                except Exception as e:
+                    logging.error(f"Failed to process file: {e}")
     except KeyboardInterrupt:
-        logging.warn(f"KeyboardInterrupt: {GROUP_ID} no longer listening on topic {consumer.subscription()}")
+        logging.warning(f"KeyboardInterrupt: {GROUP_ID} no longer listening on topic {consumer.subscription()}")
     except Exception as e:
         logging.error(f"An error occurred: {e}")
     finally:
