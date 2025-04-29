@@ -38,7 +38,7 @@ class ManualProcessingStrategy(ProcessingStrategy):
     
     def process(self, content, media_type: str) -> dict:
         if media_type == "website_url":
-            logging.info("Custom processing website content...")
+            logging.info("Manually processing website content...")
             # implement processing logic
             return {}
         elif media_type == "video_url":
