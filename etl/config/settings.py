@@ -14,3 +14,7 @@ SUBMISSION_TOPIC = os.getenv("KAFKA_TOPIC", "null")
 CONSUMER_GROUP_ID = os.getenv("KAFKA_CONSUMER_GROUP", "null")
 
 DATABASE_URL = f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
+
+LLM_HOST = os.getenv("LLM_HOST", "http://localhost:11434/api/chat")
+LLM_MODEL = os.getenv("LLM_MODEL", "none")
+USE_LLM = os.getenv("USE_LLM", "true")
