@@ -1,6 +1,8 @@
 from utils.kafka_consumer import create_kafka_consumer 
 from config.settings import SUBMISSION_TOPIC
+from extractors.factory import ExtractorFactory
 import logging
+
 
 
 logging.basicConfig(level=logging.INFO)
@@ -21,7 +23,7 @@ def main():
             logging.info(f"Received submission: {payload['source']}")
             try:
                 logging.info("Processing url ...")
-                # process_video_payload(payload)
+                process_payload(payload)
             except Exception as e:
                 logging.error(f"Failed to process url: {e}")
     except KeyboardInterrupt:
@@ -31,6 +33,10 @@ def main():
     finally:
         consumer.close()
 
+def process_payload(payload: dict):
+    media_type = payload['media_type']
+    extractor = ExtractorFactory.get_extractor(media_type)
+    result = extractor.extract(payload)
 
 if __name__ == "__main__":
     main()

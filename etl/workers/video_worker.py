@@ -1,3 +1,4 @@
+from extractors.factory import ExtractorFactory
 from utils.kafka_consumer import create_kafka_consumer 
 from config.settings import SUBMISSION_TOPIC
 import logging
@@ -38,6 +39,10 @@ def main():
     finally:
         consumer.close()
 
+def process_payload(payload: dict):
+    media_type = payload['media_type']
+    extractor = ExtractorFactory.get_extractor(media_type)
+    result = extractor.extract(payload)
 
 if __name__ == "__main__":
     main()
