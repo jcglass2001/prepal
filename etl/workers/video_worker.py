@@ -22,14 +22,14 @@ def main():
             logging.info(f"Received submission: {payload['source']}")
             try:
                 logging.info("Processing url...")
-                # process_video_url(payload)
+                process_payload(payload)
             except Exception as e:
                 logging.error(f"Failed to process url: {e}")
         elif payload.get('media_type') == 'video_file':
                 logging.info(f"Received submission: {payload['source']}")
                 try:
                     logging.info("Processing file...")
-                    # process_video_file()
+                    process_payload(payload)
                 except Exception as e:
                     logging.error(f"Failed to process file: {e}")
     except KeyboardInterrupt:
