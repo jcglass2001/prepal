@@ -1,6 +1,6 @@
 
 from abc import ABC, abstractmethod
-from config.settings import LLM_MODEL, LLM_HOST
+from config.settings import settings 
 import logging
 import requests
 
@@ -14,8 +14,9 @@ class ProcessingStrategy(ABC):
 
 class LLMProcessingStrategy(ProcessingStrategy):
     def __init__(self) -> None:
-        self.llm_url = LLM_HOST
-        self.llm_model = LLM_MODEL
+        self.llm_url = settings.LLM_HOST
+        self.llm_model = settings.LLM_MODEL
+        self.llm_provider = settings.LLM_PROVIDER
 
     def process(self, content, media_type: str) -> dict:
         if media_type == "website_url":

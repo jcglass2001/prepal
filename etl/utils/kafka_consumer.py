@@ -1,12 +1,12 @@
-from config.settings import KAFKA_BOOTSTRAP_SERVERS
+from config.settings import settings  
 from kafka import KafkaConsumer
 import json
 
-def create_kafka_consumer(topic: str, group_id: str):
+def create_kafka_consumer():
     return KafkaConsumer(
-        topic,
-        group_id=group_id,
-        bootstrap_servers=KAFKA_BOOTSTRAP_SERVERS,
+        settings.KAFKA_TOPIC,
+        group_id=settings.WORKER_NAME,
+        bootstrap_servers=settings.KAFKA_BROKER,
         value_deserializer=lambda v: json.loads(v.decode('utf-8')),
     )
 

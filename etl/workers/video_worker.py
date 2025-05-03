@@ -1,19 +1,18 @@
 from extractors.factory import ExtractorFactory
 from utils.kafka_consumer import create_kafka_consumer 
-from config.settings import SUBMISSION_TOPIC
+from config.settings import settings
 import logging
 
 
 logging.basicConfig(level=logging.INFO)
-GROUP_ID = 'VIDEO_WORKER'
 
 def main():
     consumer = create_kafka_consumer(
-        topic=SUBMISSION_TOPIC,
-        group_id=GROUP_ID
+        topic=settings.KAFKA_TOPIC,
+        group_id=settings.WORKER_NAME
     )
 
-    logging.info(f"{GROUP_ID} is running listeneing on topic {consumer.subscription()}")
+    logging.info(f"{settings.WORKER_NAME} is running listeneing on topic {consumer.subscription()}")
 
     try:
      for message in consumer:
@@ -33,7 +32,7 @@ def main():
                 except Exception as e:
                     logging.error(f"Failed to process file: {e}")
     except KeyboardInterrupt:
-        logging.warning(f"KeyboardInterrupt: {GROUP_ID} no longer listening on topic {consumer.subscription()}")
+        logging.warning(f"KeyboardInterrupt: {settings.WORKER_NAME} no longer listening on topic {consumer.subscription()}")
     except Exception as e:
         logging.error(f"An error occurred: {e}")
     finally:

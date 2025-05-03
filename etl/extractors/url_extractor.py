@@ -25,7 +25,7 @@ class WebsiteExtractor(URLExtractor):
         html_content = httpx.get(url)
         return html_content.text # temporary implementation. may change
 
-class VideoExtractor(URLExtractor):
+class VideoUrlExtractor(URLExtractor):
     
     def __init__(self, strategy: ProcessingStrategy) -> None:
         super().__init__(strategy)

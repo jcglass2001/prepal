@@ -1,6 +1,6 @@
 from .file_extractor import FileExtractor, VideoFileExtractor
-from .url_extractor import URLExtractor, VideoExtractor, WebsiteExtractor
-from config.settings import USE_LLM
+from .url_extractor import URLExtractor, VideoUrlExtractor, WebsiteExtractor
+from config.settings import settings
 from strategies.processing_strategy import LLMProcessingStrategy, ManualProcessingStrategy, ProcessingStrategy
 
 class ExtractorFactory:
@@ -15,7 +15,7 @@ class ExtractorFactory:
         if media_type == "website_url":
             return WebsiteExtractor(strategy=strategy)
         elif media_type == "video_url":
-            return VideoExtractor(strategy=strategy)
+            return VideoUrlExtractor(strategy=strategy)
         elif media_type == "video_file":
             return VideoFileExtractor(strategy=strategy)
         else:
@@ -23,7 +23,7 @@ class ExtractorFactory:
 
     @staticmethod
     def _get_strategy() -> ProcessingStrategy: 
-        if USE_LLM:
+        if settings.USE_LLM:
             return LLMProcessingStrategy()
         else:
             return ManualProcessingStrategy()
