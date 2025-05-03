@@ -1,5 +1,11 @@
 .env
-etl/venv/
-etl/config/__pycache__/ 
-etl/consumers/__pycache__/ 
+venv/
+__pycache__/
+logs/
+run/
+*.pyc 
+*.pyo 
+*.pyd 
+.env
 requirements.txt
+

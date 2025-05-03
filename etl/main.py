@@ -1,10 +1,11 @@
-import logging
-from consumers.submission_consumer import start_submission_consumer
+from workers import url_worker, video_worker
+from utils import kafka_mock_producer
 
 def main():
     print("ETL entry-point")
-    start_submission_consumer()
+    url_worker.main()
+    # video_worker.main()
+    # kafka_mock_producer.main()
 
 if __name__ == "__main__":
-    logging.basicConfig(level="DEBUG")
     main()
