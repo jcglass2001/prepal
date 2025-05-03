@@ -1,0 +1,10 @@
+accepted_media_types:
+  - video_file
+llm:
+  provider: mistral
+  model: mistral-7b
+  enabled: true
+kafka:
+  topic: media_submissions
+log_level: DEBUG
+worker_name: file_worker
