@@ -1,1 +1,4 @@
-print("Config initialized...")
+import logging
+
+logging.basicConfig(level= logging.DEBUG)
+
