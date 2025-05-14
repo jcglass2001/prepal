@@ -1,9 +1,11 @@
 import logging
-from consumers.submission_consumer import start_submission_consumer
-
+from watcher.drive_watcher import DriveWatcher
 def main():
     print("ETL entry-point")
-    start_submission_consumer()
+    
+    drive_watcher = DriveWatcher()
+    drive_watcher.run()
+
 
 if __name__ == "__main__":
     logging.basicConfig(level="DEBUG")
