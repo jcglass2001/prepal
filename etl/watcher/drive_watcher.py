@@ -1,19 +1,19 @@
-from oauth2client.service_account import time
-from config.settings import settings
 from pydrive.auth import GoogleAuth 
 from pydrive.drive import GoogleDrive
 import json
 import threading
-import logging
+import time
 from config.settings import settings
+from .base import BaseWatcher 
 
-POLLING_INTERVAL = 500
 
-class DriveWatcher(threading.Thread):
-    def __init__(self) -> None:
-        super().__init__()
-        self.target_folder = settings.TARGET_FOLDER
+
+class DriveWatcher(BaseWatcher):
+    def __init__(self, stop_event: threading.Event):
+        super().__init__(stop_event)
         self.drive = self._setup_drive()
+        self.target_folder_id = self._get_target_folder_id(settings.TARGET_FOLDER)
+        self.polling_interval = 500
 
     def _setup_drive(self):
         gauth = GoogleAuth()
@@ -21,35 +21,37 @@ class DriveWatcher(threading.Thread):
         
         return GoogleDrive(gauth)
     
-    def _get_target_folder_id(self, file_list):
-        for folder in file_list:
-            logging.info(f"Locating target folder: {self.target_folder}")
-            if folder['title'] == self.target_folder:
-                logging.debug(f"Folder '{self.target_folder}' medata: {json.dumps(folder, indent=2)}")
-                return folder['id'] 
-        raise ValueError(f"Folder {self.target_folder} not found.")
+    def _get_target_folder_id(self, folder_name : str):
+        # Query DriveAPI to retrieve list of folders in drive
+        folder_list = self.drive.ListFile({'q': "mimeType='application/vnd.google-apps.folder' and trashed=false"}).GetList()
+
+        for folder in folder_list:
+            self.logger.info(f"Locating target folder: {folder_name}")
+            if folder['title'] == folder_name:
+                id = folder['id']
+                self.logger.info(f"Target folder found with ID: {id}.")
+                self.logger.debug(f"Folder '{folder_name}' metadata: {json.dumps(folder, indent=2)}")
+                return id
+
+        # Raise error if folder not found 
+        raise ValueError(f"Folder {folder_name} not found.")
 
     def run(self):
-        while True:
-            try:
-                #Retrieve list of folders in drive
-                drive_file_list = self.drive.ListFile({'q': "mimeType='application/vnd.google-apps.folder' and trashed=false"}).GetList()
 
-                # Retrieve list of files in target folders
-                folder_id = self._get_target_folder_id(drive_file_list)
-                folder_list_file = self.drive.ListFile({'q': f"'{folder_id}' in parents"})
+        while not self.stop_event.is_set():
+            try:
+                
+                # Query DriveAPI to retrieve list of files in target folder 
+                folder_list_file = self.drive.ListFile({'q': f"'{self.target_folder_id}' in parents"})
 
                 for file in folder_list_file:
-                    logging.debug(json.dumps(file, indent=2))
+                    self.logger.debug(json.dumps(file, indent=2))
                     # todo: enqueue media metadata along with processing task to redis
                     # - check if media has already been processed
                     # - retrieve metadata and processing task
                     # - push to queue
-                    
-                
-                time.sleep(POLLING_INTERVAL)
-            except KeyboardInterrupt:
-                logging.warning("KeyboardInterrupt: ")
+
             except Exception as e:
-                logging.error(f"Error in DriveWatcher: {e}")
-                time.sleep(POLLING_INTERVAL)
+                self.logger.exception(f"Unhandled error in DriveWatcher: {e}")
+            finally:
+                self.stop_event.wait(self.polling_interval)
