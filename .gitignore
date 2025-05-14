@@ -1,5 +1,5 @@
 .env
 etl/venv/
-etl/config/__pycache__/ 
-etl/consumers/__pycache__/ 
+etl/*/__pycache__/ 
+etl/client_secrets.json
 requirements.txt
