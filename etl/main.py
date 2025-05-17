@@ -1,7 +1,8 @@
 import logging
 import signal
 import sys
-from watcher.drive_watcher import DriveWatcher
+from config.settings import app_config
+from watcher.drive import DriveWatcher
 from watcher.manager import WatcherManager
 
 
@@ -27,5 +28,5 @@ def main():
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=app_config.LOG_LEVEL)
     main()
