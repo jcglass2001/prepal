@@ -3,3 +3,5 @@ etl/venv/
 etl/*/__pycache__/ 
 etl/client_secrets.json
 requirements.txt
+
+*.json
