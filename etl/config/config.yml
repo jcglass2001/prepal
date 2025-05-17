@@ -1,0 +1,14 @@
+web_port: 5000
+
+redis:
+  host: ${REDIS_HOST}
+  port: ${REDIS_PORT}
+  list_name: "media-processing"
+
+drive:
+  target_folder: "Tiktok Recipes"
+  polling:
+    interval: 500
+
+app:
+  logging: DEBUG

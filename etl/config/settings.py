@@ -1,12 +1,36 @@
-from dotenv import load_dotenv
+
 import os
+from dotenv import load_dotenv
+import yaml
+from string import Template
 
 load_dotenv()
 
+with open('config/config.yml', 'r') as file:
+    raw = file.read()
+    sub = Template(raw).substitute(os.environ)
+
+CONFIG = yaml.safe_load(sub)
+
 class Settings:
-    REDIS_HOST= os.getenv("REDIS_HOST", "localhost")
-    REDIS_PORT= os.getenv("REDIS_PORT", "6379")
-    REDIS_LIST_NAME = os.getenv("REDIS_LIST_NAME", "")
+    # Redis
+    REDIS_HOST= CONFIG['redis']['host']
+    REDIS_PORT= CONFIG['redis']['port']
+    REDIS_LIST_NAME = CONFIG['redis']['list_name']
     
-    TARGET_FOLDER = os.getenv("TARGET_FOLDER","")
-settings = Settings()
+    # Google Drive
+    TARGET_FOLDER = CONFIG['drive']['target_folder']
+    POLLING_INTERVAL = CONFIG['drive']['polling']['interval']
+
+    # App
+    LOG_LEVEL = CONFIG['app']['logging']
+
+
+DRIVE_SETTINGS = {
+    "client_config_backend": "service",
+    "service_config": {
+        "client_json_file_path": "service-secrets.json",
+    }
+}
+
+app_config = Settings()
