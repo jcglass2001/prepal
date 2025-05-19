@@ -27,7 +27,7 @@ class DriveService:
     
     def list_files_in_folder(self, folder_id: str):
         list_file = self.drive.ListFile({'q': f"'{folder_id}' in parents and trashed=false"}).GetList() # TODO: utilize modifiedDate' or some parameter to optimize query
-        return list_file 
+        return list_file # TODO: add and update variable to track either datetime for last processed or last polled 
 
 
 class DriveWatcher(BaseWatcher):
@@ -46,17 +46,16 @@ class DriveWatcher(BaseWatcher):
         while not self.stop_event.is_set():
             try:
                 files = self.drive_service.list_files_in_folder(self.target_folder_id)                
-                for file in files:
-                    self.logger.debug(json.dumps(file, indent=2))
-                    try:
+                file_id_list = [file['id'] for file in files]
+                # self.logger.debug(json.dumps(file, indent=2))
+                try:
                         # TODO: enqueue media metadata along with processing task to redis
                         # - check if media has already been processed
                         # - retrieve metadata and processing task
                         # - push to queue
-                        self.queue_service.enqueue_task({'file_id': file['id']})
-                    except Exception as e:
-                        self.logger.error(f"Unhandled error in queueing task: {e}")
-
+                    self.queue_service.enqueue_task({'file_ids': file_id_list})
+                except Exception as e:
+                    self.logger.error(f"Unhandled error in queueing task: {e}")
             except Exception as e:
                 self.logger.exception(f"Unhandled error in DriveWatcher: {e}")
             finally:
