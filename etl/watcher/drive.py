@@ -1,6 +1,8 @@
 import json
 import threading
 import logging
+
+from pydrive2.files import ApiRequestError, FileNotUploadedError
 from config.settings import app_config
 from utils.client import setup_drive_client
 from watcher.queue import QueueService
@@ -56,6 +58,10 @@ class DriveWatcher(BaseWatcher):
                     self.queue_service.enqueue_task({'file_ids': file_id_list})
                 except Exception as e:
                     self.logger.error(f"Unhandled error in queueing task: {e}")
+            except ApiRequestError as e:
+                self.logger.error(f"Error in handling request: {e}")
+            except FileNotUploadedError as e:
+                self.logger.error(f"Error in accessing metadata: {e}")
             except Exception as e:
                 self.logger.exception(f"Unhandled error in DriveWatcher: {e}")
             finally:

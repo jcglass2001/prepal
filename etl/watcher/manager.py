@@ -9,14 +9,16 @@ class WatcherManager:
 
     def start_watcher(self, watcher_cls) -> None:
         stop_event = threading.Event()
-        watcher = watcher_cls(stop_event)        
+        watcher: BaseWatcher = watcher_cls(stop_event)        
         watcher.start()
         
         self.watchers.append(watcher)
+        self.logger.info(f"Started {watcher.__class__}...")
 
     def stop_all(self):
         for watcher in self.watchers:
             watcher.stop_event.set()
             watcher.join()
-        logging.info("All watchers stopped.")
+            self.logger.info(f"Stopped {watcher.__class__}...")
+        self.logger.info(f"All watchers stopped. Clearing list...")
         self.watchers.clear()

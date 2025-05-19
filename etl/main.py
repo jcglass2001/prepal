@@ -11,7 +11,7 @@ def main():
     manager = WatcherManager()
 
     def shutdown_handler(signum, frame):
-        logging.info(f"Received shutdown signal ({signum}). Stopping watchers...")
+        logging.warning(f"Received shutdown signal ({signum}). Stopping watchers...")
         manager.stop_all()
         sys.exit(0)
 
