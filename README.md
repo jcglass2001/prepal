@@ -1,21 +1,42 @@
-# PrepPal - Smart Meal & Grocery Planner
+# PrepPal (Simplifice Branch)
 
-**PrepPal** is a smart meal planner and grocery list generator designed to help you plan your weekly meals and manage pantry items.
+This branch ('setup/etl-core-alt') contains a **streamlined bersion** of the ETL system, focused solely on:
+    - Watching a Google Drive folder for new media files (e.g., recipe videos)
+    - Enqueueing media tasks to a Redis-backed queue (RQ)
+    - Placeholder logic for future processing (e.g., transcription)
 
-## Tech Stack
+---
 
-- **Backend**: Java Spring Boot (REST API)
-- **Frontend**: TBD
-- **ETL**: Python (for scraping and data processing)
-- **Database**" PostgreSQL
-- **CI/CD**: GitHub Actions, Docker
+## Branch Purpose
+ 
+ This branch is **narrowly scoped** to focus on stable integration of:
 
-## Planned Features
-- Smart Meal Planner: Generates weekly meal plans based on pantry inventory and dietary preferences
-- Grocery List Generator: Automatically creates a shopping list based on the meal plan
+- Google Frive folder polling
+- Redis-based job queueing
+- Clean separation of config, watchers, and processing logic
+
+> Does **not** currently include:
+> - URL scraping
+> - Notion/database integration
+> - Video transcription
 
 
-## Stretch Goals
-- ML-based recommendations
-- Nutrition tracking
-- Voice input for meal planning
+## Project Structure
+
+.
+├── LICENSE
+├── README.md
+├── database
+├── docs
+└── etl
+    ├── config/ # YAML + .env-based config loading
+    ├── log
+    ├── main.py # etl entrypoint
+    ├── processor # Placeholder for media processors
+    ├── tmp # Temporary data store
+    ├── utils # API client setup
+    └── watcher # Thread-based processes for polling API's 
+
+
+
+
