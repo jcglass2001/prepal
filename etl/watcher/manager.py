@@ -1,11 +1,12 @@
-import logging
-import threading 
+import threading
+
+from utils.logging import setup_logger 
 from .base import BaseWatcher
 
 class WatcherManager:
     def __init__(self) -> None:
         self.watchers: list[BaseWatcher] = []
-        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.logger = setup_logger(__name__)
 
     def start_watcher(self, watcher_cls) -> None:
         stop_event = threading.Event()

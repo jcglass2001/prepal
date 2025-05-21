@@ -1,10 +1,9 @@
-import json
 import threading
-import logging
 
 from pydrive2.files import ApiRequestError, FileNotUploadedError
 from config.settings import app_config
 from utils.client import setup_drive_client
+from utils.logging import setup_logger
 from watcher.queue import QueueService
 from .base import BaseWatcher 
 
@@ -13,7 +12,7 @@ class DriveService:
     Class responsible for Drive API interactions
     """
     def __init__(self) -> None:
-        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.logger = setup_logger(__name__) 
         self.drive = setup_drive_client()
 
     def get_folder_id(self, folder_name: str) -> str:
@@ -28,8 +27,13 @@ class DriveService:
         raise ValueError(f"Folder '{folder_name}' not found.")
     
     def list_files_in_folder(self, folder_id: str):
-        list_file = self.drive.ListFile({'q': f"'{folder_id}' in parents and trashed=false"}).GetList() # TODO: utilize modifiedDate' or some parameter to optimize query
-        return list_file # TODO: add and update variable to track either datetime for last processed or last polled 
+        try:
+            list_file = self.drive.ListFile({'q': f"'{folder_id}' in parents and trashed=false"}).GetList() # TODO: utilize modifiedDate' or some parameter to optimize query
+            return list_file # TODO: add and update variable to track either datetime for last processed or last polled 
+        except ApiRequestError as e:
+            self.logger.error(f"Error occurred requesting files from folder {folder_id}: {e}")
+        except Exception as e:
+            self.logger.error(f"Unhandled error occurred requesting files from folder {folder_id}: {e}")
 
 
 class DriveWatcher(BaseWatcher):

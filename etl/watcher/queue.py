@@ -1,7 +1,6 @@
 from config.settings import app_config
 from redis import Redis
 from rq import Queue
-import logging
 from processor.media import process_media_job
 
 class QueueService:

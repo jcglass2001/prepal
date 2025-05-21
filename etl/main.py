@@ -1,7 +1,7 @@
-import logging
 import signal
 import sys
 from config.settings import app_config
+from utils.logging import setup_logger
 from watcher.drive import DriveWatcher
 from watcher.manager import WatcherManager
 
@@ -9,9 +9,10 @@ from watcher.manager import WatcherManager
 
 def main():
     manager = WatcherManager()
+    logger = setup_logger(__name__)
 
     def shutdown_handler(signum, frame):
-        logging.warning(f"Received shutdown signal ({signum}). Stopping watchers...")
+        logger.warning(f"Received shutdown signal ({signum}). Stopping watchers...")
         manager.stop_all()
         sys.exit(0)
 
@@ -21,12 +22,11 @@ def main():
 
     manager.start_watcher(DriveWatcher)
     # manager.start_watcher(...)
-    logging.info("All watchers running...")
+    logger.info("All watchers running...")
     
     signal.pause()
              
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=app_config.LOG_LEVEL)
     main()
