@@ -14,12 +14,12 @@ class WatcherManager:
         watcher.start()
         
         self.watchers.append(watcher)
-        self.logger.info(f"Started {watcher.__class__}...")
+        self.logger.info(f"Started {watcher.__class__.__name__}...")
 
     def stop_all(self):
         for watcher in self.watchers:
             watcher.stop_event.set()
             watcher.join()
-            self.logger.info(f"Stopped {watcher.__class__}...")
+            self.logger.info(f"Stopped {watcher.__class__.__name__}...")
         self.logger.info(f"All watchers stopped. Clearing list...")
         self.watchers.clear()

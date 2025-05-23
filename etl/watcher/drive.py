@@ -22,7 +22,7 @@ class DriveService:
         for folder in folder_list:
             if folder['title'] == folder_name:
                 id = folder['id']
-                self.logger.info(f"Found folder {folder_name} with ID: {id}.")
+                self.logger.debug(f"Found folder {folder_name} with ID: {id}.")
                 return id
         raise ValueError(f"Folder '{folder_name}' not found.")
     
