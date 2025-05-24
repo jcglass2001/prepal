@@ -1,5 +1,7 @@
 
 import os
+from typing import Any
+import whisper
 from pydrive2.drive import GoogleDrive
 from pydrive2.files import ApiRequestError
 from redis import Redis
@@ -15,6 +17,7 @@ class MediaProcessor:
         self.redis_client = redis_client
         self.logger = setup_logger(self.__class__.__name__)
     
+
     def _download_file(self, file_id:str):
         """
         Queries API for file download based on file_id and returns path of downloaded file
@@ -35,11 +38,22 @@ class MediaProcessor:
         except Exception as e:
             self.logger.error(f"Unhandled exception downloading: {file_id}: {e}")
             
-    def download_media(self, max_workers=2):
+    def _transcribe_file(self, file_path: str) -> str | list[Any]:
+        """
+        Converts audio/video to text
+        """
+        model = whisper.load_model(app_config.WHISPER_MODEL)
+        result = model.transcribe(file_path)
+        self.logger.debug(f"Model output: {result['text']}")
+
+        return result['text'] 
+
+    def download_media(self, max_workers=2)-> list[str]:
         """
         Launches batch download using thread pool
         """
         self.logger.debug(f"Starting batch download for files: {self.file_ids}")
+        output_list = []
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_dict = {
                 executor.submit(self._download_file, file_id): file_id 
@@ -53,23 +67,29 @@ class MediaProcessor:
                     if result:
                         self.logger.info(f"Successfully downloaded {file_id}")
                         self.logger.debug(f"Result: {result}")
+                        output_list.append(result)
                     else:
                         self.logger.warning(f"Download failed for {file_id}")
                 except Exception as e:
                     self.logger.error(f"Error in thread for {file_id}: {e}")
-            
-        pass
 
-    def process_media(self):
+        return output_list
+
+    def process_media(self, file_path_list: list[str]):
         # planned: transcribe media and extract key data
-        self.logger.debug(f"Processing media")
-        pass
+        for file_path in file_path_list:
+            try:
+                self.logger.info(f"Transcribing file: {file_path}")
+                transcription = self._transcribe_file(file_path)
+                # TODO: validate transcription, process transcription 
+            except Exception as e:
+                self.logger.error(f"Unhandled exception while transcribing: {e}")
 
     def run(self):
         # entry point to download, process, and update
         self.logger.debug(f"Running processor for payload: {self.file_ids}")
-        self.download_media()
-        self.process_media()
+        path_list = self.download_media(max_workers=len(self.file_ids))
+        self.process_media(path_list)
 
 
 
@@ -83,5 +103,5 @@ def process_media_job(task_data: dict):
 
 
 if __name__ == "__main__":
-    data = {"file_ids": ["1Xt1o0W0sF-z_MUtfXi-e9i3qVuQ9lLBt"]}
+    data = { "file_ids": ["1GlpbJ5wxjXynfzkADdtK867t_O-5yEZw","1Xt1o0W0sF-z_MUtfXi-e9i3qVuQ9lLBt","1LBG9wz9H1nQsinQSWcHKJFExPKmM_xzU"] }
     process_media_job(data)
