@@ -25,6 +25,15 @@ class Settings:
     # App
     LOG_LEVEL = CONFIG['app']['logging']
 
+    # Whisper
+    WHISPER_MODEL = CONFIG['whisper']['model']
+
+    # Ollama
+    LLM_HOST = CONFIG['llm']['host']
+    LLM_PROVIDER = CONFIG['llm']['provider']
+    LLM_MODEL = CONFIG['llm']['model']
+    USE_LLM = CONFIG['llm']['enabled']
+
 
 DRIVE_SETTINGS = {
     "client_config_backend": "service",

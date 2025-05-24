@@ -6,6 +6,7 @@ from pydrive2.drive import GoogleDrive
 from pydrive2.files import ApiRequestError
 from redis import Redis
 from config.settings import app_config 
+from processor.strategy import LLMProcessingStrategy
 from utils.client import setup_drive_client
 from utils.logging import setup_logger 
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -77,11 +78,13 @@ class MediaProcessor:
 
     def process_media(self, file_path_list: list[str]):
         # planned: transcribe media and extract key data
+        processor = LLMProcessingStrategy()
         for file_path in file_path_list:
             try:
                 self.logger.info(f"Transcribing file: {file_path}")
-                transcription = self._transcribe_file(file_path)
-                # TODO: validate transcription, process transcription 
+                transcript = self._transcribe_file(file_path)
+                # TODO: validate transcription, process transcription
+                processor.process(transcript)
             except Exception as e:
                 self.logger.error(f"Unhandled exception while transcribing: {e}")
 
@@ -103,5 +106,5 @@ def process_media_job(task_data: dict):
 
 
 if __name__ == "__main__":
-    data = { "file_ids": ["1GlpbJ5wxjXynfzkADdtK867t_O-5yEZw","1Xt1o0W0sF-z_MUtfXi-e9i3qVuQ9lLBt","1LBG9wz9H1nQsinQSWcHKJFExPKmM_xzU"] }
+    data = { "file_ids": ["1GlpbJ5wxjXynfzkADdtK867t_O-5yEZw",]}#"1Xt1o0W0sF-z_MUtfXi-e9i3qVuQ9lLBt","1LBG9wz9H1nQsinQSWcHKJFExPKmM_xzU"] }
     process_media_job(data)

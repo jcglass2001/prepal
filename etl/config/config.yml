@@ -7,6 +7,14 @@ drive:
   target_folder: "Tiktok Recipes"
   polling:
     interval: 500
+llm:
+  host: ${LLM_HOST}
+  provider: mistral
+  model: mistral
+  enabled: true
+
+whisper:
+  model: base
 
 app:
   logging: DEBUG
