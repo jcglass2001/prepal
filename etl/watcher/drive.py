@@ -1,10 +1,10 @@
 import threading
 
 from pydrive2.files import ApiRequestError, FileNotUploadedError
-from config.settings import app_config
-from utils.client import setup_drive_client
+from config.settings import DriveSettings, RedisSettings
+from processor.media import process_media_job
+from utils.client import setup_drive_client, setup_redis_client
 from utils.logging import setup_logger
-from watcher.queue import QueueService
 from .base import BaseWatcher 
 
 class DriveService:
@@ -43,9 +43,9 @@ class DriveWatcher(BaseWatcher):
     def __init__(self, stop_event: threading.Event):
         super().__init__(stop_event)
         self.drive_service = DriveService()
-        self.queue_service = QueueService()
-        self.target_folder_id = self.drive_service.get_folder_id(app_config.TARGET_FOLDER)
-        self.polling_interval = app_config.POLLING_INTERVAL
+        self.queue = setup_redis_client(RedisSettings.MEDIA_QUEUE)
+        self.target_folder_id = self.drive_service.get_folder_id(DriveSettings.TARGET_FOLDER)
+        self.polling_interval = DriveSettings.POLLING_INTERVAL 
         
     def run(self):
 
@@ -59,7 +59,7 @@ class DriveWatcher(BaseWatcher):
                         # - check if media has already been processed
                         # - retrieve metadata and processing task
                         # - push to queue
-                    self.queue_service.enqueue_task({'file_ids': file_id_list})
+                    self.queue.enqueue(process_media_job, {'file_ids': file_id_list})
                 except Exception as e:
                     self.logger.error(f"Unhandled error in queueing task: {e}")
             except ApiRequestError as e:

@@ -1,10 +1,8 @@
 import signal
 import sys
-from config.settings import app_config
 from utils.logging import setup_logger
 from watcher.drive import DriveWatcher
 from watcher.manager import WatcherManager
-
 
 
 def main():

@@ -1,10 +1,10 @@
-from config.settings import app_config
 import logging
 import sys
+from config.settings import AppSettings
 
 def setup_logger(name: str):
     logger = logging.getLogger(name)
-    logger.setLevel(app_config.LOG_LEVEL)
+    logger.setLevel(AppSettings.LOG_LEVEL)
 
     formatter = logging.Formatter(
         '[%(asctime)s] %(levelname)s:%(name)s: %(message)s'

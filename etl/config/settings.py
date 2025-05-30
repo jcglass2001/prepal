@@ -10,36 +10,32 @@ with open('config/config.yml', 'r') as file:
     raw = file.read()
     sub = Template(raw).substitute(os.environ)
 
-CONFIG = yaml.safe_load(sub)
+_config = yaml.safe_load(sub)
 
-class Settings:
-    # Redis
-    REDIS_HOST= CONFIG['redis']['host']
-    REDIS_PORT= CONFIG['redis']['port']
-    REDIS_LIST_NAME = CONFIG['redis']['list_name']
-    
-    # Google Drive
-    TARGET_FOLDER = CONFIG['drive']['target_folder']
-    POLLING_INTERVAL = CONFIG['drive']['polling']['interval']
+class RedisSettings:
+    HOST = _config['redis']['host']
+    PORT = _config['redis']['port']
+    MEDIA_QUEUE = _config['redis']['media_queue']
+    NOTION_QUEUE = _config['redis']['notion_queue']
 
-    # App
-    LOG_LEVEL = CONFIG['app']['logging']
+class LLMSettings:
+    HOST = _config['llm']['host']
+    PROVIDER = _config['llm']['provider']
+    MODEL = _config['llm']['model']
+    USE_LLM = _config['llm']['enabled']
 
-    # Whisper
-    WHISPER_MODEL = CONFIG['whisper']['model']
-
-    # Ollama
-    LLM_HOST = CONFIG['llm']['host']
-    LLM_PROVIDER = CONFIG['llm']['provider']
-    LLM_MODEL = CONFIG['llm']['model']
-    USE_LLM = CONFIG['llm']['enabled']
-
-
-DRIVE_SETTINGS = {
-    "client_config_backend": "service",
-    "service_config": {
-        "client_json_file_path": "service-secrets.json",
+class DriveSettings:
+    TARGET_FOLDER = _config['drive']['target_folder']
+    POLLING_INTERVAL = _config['drive']['polling']['interval']
+    CLIENT_SETTINGS = {
+        "client_config_backend": "service",
+        "service_config": {
+            "client_json_file_path": "service-secrets.json",
+        }
     }
-}
 
-app_config = Settings()
+class AppSettings:
+    LOG_LEVEL = _config['app']['logging']
+    WHISPER_MODEL = _config['whisper']['model']
+ 
+

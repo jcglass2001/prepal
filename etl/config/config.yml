@@ -1,7 +1,8 @@
 redis:
   host: ${REDIS_HOST}
   port: ${REDIS_PORT}
-  list_name: "media-processing"
+  media_queue: "media:queue"
+  notion_queue: "notion:queue"
 
 drive:
   target_folder: "Tiktok Recipes"
