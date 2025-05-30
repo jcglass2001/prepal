@@ -1,6 +1,6 @@
-# PrepPal (Simplifice Branch)
+# PrepPal (Simplified Branch)
 
-This branch ('setup/etl-core-alt') contains a **streamlined bersion** of the ETL system, focused solely on:
+This branch ('dev/prototype-core') contains a **streamlined bersion** of the ETL system, focused solely on:
     - Watching a Google Drive folder for new media files (e.g., recipe videos)
     - Enqueueing media tasks to a Redis-backed queue (RQ)
     - Placeholder logic for future processing (e.g., transcription)
