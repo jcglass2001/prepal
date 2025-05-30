@@ -1,50 +1,56 @@
-
+# Standard library imports
 import os
+import json
+from os.path import exists
 from typing import Any
+from concurrent.futures import ThreadPoolExecutor, as_completed 
+
+# Third part library imports
 import whisper
-from pydrive2.drive import GoogleDrive
 from pydrive2.files import ApiRequestError
 from redis import Redis
-from config.settings import app_config 
+
+
+# Custom moudle imports
+from config.settings import AppSettings, RedisSettings
 from processor.strategy import LLMProcessingStrategy
 from utils.client import setup_drive_client
 from utils.logging import setup_logger 
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 class MediaProcessor:
-    def __init__(self, file_ids: list[str], drive_client: GoogleDrive, redis_client):
+    def __init__(self, file_ids: list[str]):
         self.file_ids = file_ids
-        self.drive_client = drive_client
-        self.redis_client = redis_client
+        self.drive_client = setup_drive_client()
+        self.redis_client = Redis(host=RedisSettings.HOST, port=RedisSettings.PORT)
+        self.whisper_model = whisper.load_model(AppSettings.WHISPER_MODEL)
         self.logger = setup_logger(self.__class__.__name__)
-    
+            
 
-    def _download_file(self, file_id:str):
+    def _download_file(self, working_dir: str, file_id:str):
         """
         Queries API for file download based on file_id and returns path of downloaded file
         """
-        TMP_DIR = "tmp/media"
-        os.makedirs(TMP_DIR, exist_ok=True)
 
-        file_path = os.path.join(TMP_DIR, f"{file_id}.mp4")
-
-        try:
-            self.logger.info(f"Attempting to download file: {file_id}")
-            file = self.drive_client.CreateFile({'id' : file_id})
-            file.GetContentFile(file_path)
-            self.logger.debug(f"Successfully downloaded file to: {file_path}")
+        file_path = os.path.join(working_dir, f"{file_id}.mp4")
+        if not os.path.exists(file_path):
+            try:
+                self.logger.info(f"Attempting to download file: {file_id}")
+                file = self.drive_client.CreateFile({'id' : file_id})
+                file.GetContentFile(file_path)
+                self.logger.debug(f"Successfully downloaded file to: {file_path}")
+                return file_path
+            except ApiRequestError:
+                self.logger.error(f"Request error while downloading: {file_id}")
+            except Exception as e:
+                self.logger.error(f"Unhandled exception downloading: {file_id}: {e}")
+        else:
             return file_path
-        except ApiRequestError:
-            self.logger.error(f"Request error while downloading: {file_id}")
-        except Exception as e:
-            self.logger.error(f"Unhandled exception downloading: {file_id}: {e}")
             
     def _transcribe_file(self, file_path: str) -> str | list[Any]:
         """
         Converts audio/video to text
         """
-        model = whisper.load_model(app_config.WHISPER_MODEL)
-        result = model.transcribe(file_path)
+        result = self.whisper_model.transcribe(file_path)
         self.logger.debug(f"Model output: {result['text']}")
 
         return result['text'] 
@@ -53,11 +59,14 @@ class MediaProcessor:
         """
         Launches batch download using thread pool
         """
+        TMP_DIR = "tmp/media"
+        os.makedirs(TMP_DIR, exist_ok=True)
+
         self.logger.debug(f"Starting batch download for files: {self.file_ids}")
         output_list = []
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_dict = {
-                executor.submit(self._download_file, file_id): file_id 
+                executor.submit(self._download_file, TMP_DIR, file_id): file_id 
                 for file_id in self.file_ids
             } # dict(Future, file_id)
             
@@ -77,14 +86,22 @@ class MediaProcessor:
         return output_list
 
     def process_media(self, file_path_list: list[str]):
-        # planned: transcribe media and extract key data
-        processor = LLMProcessingStrategy()
+        """
+        Processes data based off strategy and pushes structured data to redis queue
+        """
+        strategy = LLMProcessingStrategy()
         for file_path in file_path_list:
             try:
                 self.logger.info(f"Transcribing file: {file_path}")
                 transcript = self._transcribe_file(file_path)
-                # TODO: validate transcription, process transcription
-                processor.process(transcript)
+                structured_data = strategy.process(transcript)
+                    
+                serialized = json.dumps(structured_data)
+                queue_name = RedisSettings.NOTION_QUEUE
+                self.redis_client.rpush(queue_name, serialized)
+
+                self.logger.info(f"Sent structured data to queue:{queue_name}")
+                self.logger.debug(f"Payload sent: {serialized}")
             except Exception as e:
                 self.logger.error(f"Unhandled exception while transcribing: {e}")
 
@@ -96,12 +113,9 @@ class MediaProcessor:
 
 
 
-drive_client = setup_drive_client()
-redis_client = Redis(host=app_config.REDIS_HOST, port=app_config.REDIS_PORT)
-
 def process_media_job(task_data: dict):
     file_ids = task_data['file_ids']
-    processor = MediaProcessor(file_ids, drive_client, redis_client)
+    processor = MediaProcessor(file_ids)
     processor.run()
 
 
