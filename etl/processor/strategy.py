@@ -1,8 +1,13 @@
+# Standard library imports 
 from abc import ABC, abstractmethod
 import json
 
-from utils.logging import setup_logger
+# Third-party imports
+import ollama
+
+# Custom imports
 from config.settings import LLMSettings
+from utils.logging import setup_logger
 import ollama
 
 class BaseStrategy(ABC):
@@ -28,6 +33,7 @@ class LLMProcessingStrategy(BaseStrategy):
         """
         Offloads transcript processing to hosted LLM service
         """
+
         prompt = f"""
         Given the following transcript of a recipe video, extract:
 
@@ -35,7 +41,9 @@ class LLMProcessingStrategy(BaseStrategy):
         - Ingredients: list
         - Instructions: list
 
-        Output as JSON. Avoid brand names.
+        Provide ingredients without brand names or unnecessary information. 
+
+        Output as JSON.
 
         Transcript: {transcript}
         """

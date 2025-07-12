@@ -3,7 +3,7 @@ import threading
 from pydrive2.files import ApiRequestError, FileNotUploadedError
 from config.settings import DriveSettings, RedisSettings
 from processor.media import process_media_job
-from utils.client import setup_drive_client, setup_redis_client
+from utils.client import setup_drive_client, setup_rq
 from utils.logging import setup_logger
 from .base import BaseWatcher 
 
@@ -29,6 +29,9 @@ class DriveService:
     def list_files_in_folder(self, folder_id: str):
         try:
             list_file = self.drive.ListFile({'q': f"'{folder_id}' in parents and trashed=false"}).GetList() # TODO: utilize modifiedDate' or some parameter to optimize query
+            
+            self.logger.debug(f"Files in folder: {len(list_file)}")
+
             return list_file # TODO: add and update variable to track either datetime for last processed or last polled 
         except ApiRequestError as e:
             self.logger.error(f"Error occurred requesting files from folder {folder_id}: {e}")
@@ -43,7 +46,7 @@ class DriveWatcher(BaseWatcher):
     def __init__(self, stop_event: threading.Event):
         super().__init__(stop_event)
         self.drive_service = DriveService()
-        self.queue = setup_redis_client(RedisSettings.MEDIA_QUEUE)
+        self.queue = setup_rq(RedisSettings.MEDIA_QUEUE)
         self.target_folder_id = self.drive_service.get_folder_id(DriveSettings.TARGET_FOLDER)
         self.polling_interval = DriveSettings.POLLING_INTERVAL 
         
@@ -60,6 +63,8 @@ class DriveWatcher(BaseWatcher):
                         # - retrieve metadata and processing task
                         # - push to queue
                     self.queue.enqueue(process_media_job, {'file_ids': file_id_list})
+                    self.logger.debug(f"Files IDs enqueued: {file_id_list}")
+
                 except Exception as e:
                     self.logger.error(f"Unhandled error in queueing task: {e}")
             except ApiRequestError as e:
@@ -70,3 +75,4 @@ class DriveWatcher(BaseWatcher):
                 self.logger.exception(f"Unhandled error in DriveWatcher: {e}")
             finally:
                 self.stop_event.wait(self.polling_interval)
+

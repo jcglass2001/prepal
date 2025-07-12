@@ -1,7 +1,6 @@
 # Standard library imports
 import os
 import json
-from os.path import exists
 from typing import Any
 from concurrent.futures import ThreadPoolExecutor, as_completed 
 
@@ -14,14 +13,14 @@ from redis import Redis
 # Custom moudle imports
 from config.settings import AppSettings, RedisSettings
 from processor.strategy import LLMProcessingStrategy
-from utils.client import setup_drive_client
+from utils.client import setup_drive_client, setup_redis_client
 from utils.logging import setup_logger 
 
 class MediaProcessor:
     def __init__(self, file_ids: list[str]):
         self.file_ids = file_ids
         self.drive_client = setup_drive_client()
-        self.redis_client = Redis(host=RedisSettings.HOST, port=RedisSettings.PORT)
+        self.redis_client = setup_redis_client() 
         self.whisper_model = whisper.load_model(AppSettings.WHISPER_MODEL)
         self.logger = setup_logger(self.__class__.__name__)
             
@@ -54,7 +53,7 @@ class MediaProcessor:
         Converts audio/video to text
         """
         try:
-            self.logger.debug(f"Transcribing file: {file_path}")
+            self.logger.info(f"Transcribing file: {file_path}")
             result = self.whisper_model.transcribe(file_path)
             self.logger.debug(f"Model output: {result['text']}")
         except Exception as e:
@@ -104,12 +103,13 @@ class MediaProcessor:
                     
                 serialized = json.dumps(structured_data)
                 queue_name = RedisSettings.NOTION_QUEUE
-                self.redis_client.rpush(queue_name, serialized)
 
-                self.logger.info(f"Sent structured data to queue:{queue_name}")
+                self.logger.info(f"Sending structured data to queue:{queue_name}")
+                self.redis_client.rpush(queue_name, serialized)
                 self.logger.debug(f"Payload sent: {serialized}")
+
             except Exception as e:
-                self.logger.error(f"Unhandled exception while transcribing: {e}")
+                self.logger.error(f"Unhandled exception while processing: {e}")
 
     def run(self):
         # entry point to download, process, and update
@@ -118,8 +118,8 @@ class MediaProcessor:
         self.process_media(path_list)
 
 
-
 def process_media_job(task_data: dict):
+    """ RQ Job function to start media processing. """
     file_ids = task_data['file_ids']
     processor = MediaProcessor(file_ids)
     processor.run()
