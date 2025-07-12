@@ -30,11 +30,14 @@ class MediaProcessor:
         """
         Queries API for file download based on file_id and returns path of downloaded file
         """
+        
+        self.logger.debug(f"Working directory: {working_dir}")
+        self.logger.debug(f"File ID: {file_id}")
 
         file_path = os.path.join(working_dir, f"{file_id}.mp4")
         if not os.path.exists(file_path):
             try:
-                self.logger.info(f"Attempting to download file: {file_id}")
+                self.logger.info(f"Downloading file: {file_id}")
                 file = self.drive_client.CreateFile({'id' : file_id})
                 file.GetContentFile(file_path)
                 self.logger.debug(f"Successfully downloaded file to: {file_path}")
@@ -50,8 +53,12 @@ class MediaProcessor:
         """
         Converts audio/video to text
         """
-        result = self.whisper_model.transcribe(file_path)
-        self.logger.debug(f"Model output: {result['text']}")
+        try:
+            self.logger.debug(f"Transcribing file: {file_path}")
+            result = self.whisper_model.transcribe(file_path)
+            self.logger.debug(f"Model output: {result['text']}")
+        except Exception as e:
+            self.logger.error(f"Error transcribing file: {e}")
 
         return result['text'] 
 
@@ -92,7 +99,6 @@ class MediaProcessor:
         strategy = LLMProcessingStrategy()
         for file_path in file_path_list:
             try:
-                self.logger.info(f"Transcribing file: {file_path}")
                 transcript = self._transcribe_file(file_path)
                 structured_data = strategy.process(transcript)
                     
