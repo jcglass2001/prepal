@@ -1,4 +1,4 @@
-# PrepPal (Simplidied Branch)
+# PrepPal (Simplified Branch)
 
 This branch contains the current implementation of the processing logic
 
