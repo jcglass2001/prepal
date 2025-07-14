@@ -5,3 +5,5 @@ etl/client_secrets.json
 requirements.txt
 
 *.json
+tmp/
+settings.yaml
