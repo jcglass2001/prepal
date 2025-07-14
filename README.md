@@ -1,9 +1,6 @@
-# PrepPal (Simplifice Branch)
+# PrepPal (Simplidied Branch)
 
-This branch ('setup/etl-core-alt') contains a **streamlined bersion** of the ETL system, focused solely on:
-    - Watching a Google Drive folder for new media files (e.g., recipe videos)
-    - Enqueueing media tasks to a Redis-backed queue (RQ)
-    - Placeholder logic for future processing (e.g., transcription)
+This branch contains the current implementation of the processing logic
 
 ---
 
@@ -11,18 +8,18 @@ This branch ('setup/etl-core-alt') contains a **streamlined bersion** of the ETL
  
  This branch is **narrowly scoped** to focus on stable integration of:
 
-- Google Frive folder polling
+- Google Drive folder polling
 - Redis-based job queueing
-- Clean separation of config, watchers, and processing logic
+- Video transcription
+- Natural Language Processing offloaded to self hosted llm (currently Mistral)
 
 > Does **not** currently include:
 > - URL scraping
 > - Notion/database integration
-> - Video transcription
 
 
 ## Project Structure
-
+```
 .
 ├── LICENSE
 ├── README.md
@@ -32,11 +29,11 @@ This branch ('setup/etl-core-alt') contains a **streamlined bersion** of the ETL
     ├── config/ # YAML + .env-based config loading
     ├── log
     ├── main.py # etl entrypoint
-    ├── processor # Placeholder for media processors
-    ├── tmp # Temporary data store
-    ├── utils # API client setup
-    └── watcher # Thread-based processes for polling API's 
-
+    ├── processor/ # Placeholder for media processors
+    ├── tmp/ # Temporary data store
+    ├── utils/ # API client setup
+    └── watcher/ # Thread-based processes for polling API's 
+```
 
 
 
