@@ -126,7 +126,7 @@ WHISPER_MODEL = whisper.load_model(AppSettings.WHISPER_MODEL)
 def process_media_job(task_data: dict):
     """RQ Job function to start media processing."""
     file_ids = task_data["file_ids"]
-    processor = MediaProcessor(file_ids)
+    processor = MediaProcessor(file_ids, DRIVE_CLIENT, REDIS_CLIENT, WHISPER_MODEL)
     processor.run()
 
 
