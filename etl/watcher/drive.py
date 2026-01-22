@@ -77,9 +77,10 @@ class DriveWatcher(BaseWatcher):
                     # - check if media has already been processed
                     # - retrieve metadata and processing task
                     # - push to queue
-                    # self.queue.enqueue(process_media_job, {'file_ids': file_id_list})
-                    job = lambda x: print(x)
-                    self.queue.enqueue(job, {"file_ids": file_id_list})
+
+                    self.queue.enqueue(
+                        "processor.media.process_media_job", {"file_ids": file_id_list}
+                    )
                     self.logger.debug(f"Files IDs enqueued: {file_id_list}")
 
                 except Exception as e:

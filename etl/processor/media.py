@@ -18,11 +18,11 @@ from utils.logging import setup_logger
 
 
 class MediaProcessor:
-    def __init__(self, file_ids: list[str]):
+    def __init__(self, file_ids: list[str], drive_client, redis_client, whisper_model):
         self.file_ids = file_ids
-        self.drive_client = setup_drive_client()
-        self.redis_client = setup_redis_client()
-        self.whisper_model = whisper.load_model(AppSettings.WHISPER_MODEL)
+        self.drive_client = drive_client
+        self.redis_client = redis_client
+        self.whisper_model = whisper_model
         self.logger = setup_logger(self.__class__.__name__)
 
     def _download_file(self, working_dir: str, file_id: str):
@@ -116,6 +116,11 @@ class MediaProcessor:
         self.logger.debug(f"Running processor for payload: {self.file_ids}")
         path_list = self.download_media(max_workers=len(self.file_ids))
         self.process_media(path_list)
+
+
+DRIVE_CLIENT = setup_drive_client()
+REDIS_CLIENT = setup_redis_client()
+WHISPER_MODEL = whisper.load_model(AppSettings.WHISPER_MODEL)
 
 
 def process_media_job(task_data: dict):
