@@ -1,7 +1,10 @@
 certifi==2026.1.4
 cffi==2.0.0
 charset-normalizer==3.4.4
+click==8.3.1
+croniter==6.0.0
 cryptography==43.0.3
+dotenv==0.9.9
 google-api-core==2.29.0
 google-api-python-client==2.188.0
 google-auth==2.47.0
@@ -18,8 +21,13 @@ pycparser==2.23
 PyDrive2==1.21.3
 pyOpenSSL==24.2.1
 pyparsing==3.3.1
+python-dateutil==2.9.0.post0
+python-dotenv==1.2.1
+pytz==2025.2
 PyYAML==6.0.3
+redis==7.1.0
 requests==2.32.5
+rq==2.6.1
 rsa==4.9.1
 six==1.17.0
 uritemplate==4.2.0
