@@ -4,15 +4,18 @@ from redis import Redis
 from rq import Queue
 from config.settings import DriveSettings, RedisSettings
 
+
 def setup_drive_client() -> GoogleDrive:
     """Creates GoogleDrive instance"""
     gauth = GoogleAuth(settings=DriveSettings.CLIENT_SETTINGS)
     gauth.ServiceAuth()
-    return GoogleDrive(gauth) 
+    return GoogleDrive(gauth)
+
 
 def setup_redis_client() -> Redis:
     """Creates Redis connection"""
     return Redis(host=RedisSettings.HOST, port=RedisSettings.PORT)
+
 
 def setup_rq(queue_name: str) -> Queue:
     """Creates Redis connection and returns rq Queue object"""
