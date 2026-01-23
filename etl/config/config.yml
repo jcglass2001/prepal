@@ -11,7 +11,7 @@ drive:
 llm:
   host: ${LLM_HOST}
   provider: mistral
-  model: mistral
+  model: ministral-3:3b
   enabled: true
 
 whisper:

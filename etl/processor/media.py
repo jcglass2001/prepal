@@ -30,8 +30,7 @@ class MediaProcessor:
         Queries API for file download based on file_id and returns path of downloaded file
         """
 
-        self.logger.debug(f"Working directory: {working_dir}")
-        self.logger.debug(f"File ID: {file_id}")
+        self.logger.debug(f"Working directory: {working_dir}\t File ID: {file_id}")
 
         file_path = os.path.join(working_dir, f"{file_id}.mp4")
         if not os.path.exists(file_path):
@@ -53,9 +52,9 @@ class MediaProcessor:
         Converts audio/video to text
         """
         try:
-            self.logger.info(f"Transcribing file: {file_path}")
+            self.logger.info(f"Transcribing file: {file_path} ...")
             result = self.whisper_model.transcribe(file_path)
-            self.logger.debug(f"Model output: {result['text']}")
+            self.logger.debug(f"Transcription: {result['text']}")
         except Exception as e:
             self.logger.error(f"Error transcribing file: {e}")
 
@@ -118,15 +117,15 @@ class MediaProcessor:
         self.process_media(path_list)
 
 
-DRIVE_CLIENT = setup_drive_client()
-REDIS_CLIENT = setup_redis_client()
-WHISPER_MODEL = whisper.load_model(AppSettings.WHISPER_MODEL)
-
-
 def process_media_job(task_data: dict):
     """RQ Job function to start media processing."""
     file_ids = task_data["file_ids"]
-    processor = MediaProcessor(file_ids, DRIVE_CLIENT, REDIS_CLIENT, WHISPER_MODEL)
+
+    drive_client = setup_drive_client()
+    redis_client = setup_redis_client()
+    whisper_model = whisper.load_model(AppSettings.WHISPER_MODEL)
+
+    processor = MediaProcessor(file_ids, drive_client, redis_client, whisper_model)
     processor.run()
 
 
@@ -134,6 +133,8 @@ if __name__ == "__main__":
     data = {
         "file_ids": [
             "1GlpbJ5wxjXynfzkADdtK867t_O-5yEZw",
+            "1Xt1o0W0sF-z_MUtfXi-e9i3qVuQ9lLBt",
+            "1LBG9wz9H1nQsinQSWcHKJFExPKmM_xzU",
         ]
-    }  # "1Xt1o0W0sF-z_MUtfXi-e9i3qVuQ9lLBt","1LBG9wz9H1nQsinQSWcHKJFExPKmM_xzU"] }
+    }
     process_media_job(data)
