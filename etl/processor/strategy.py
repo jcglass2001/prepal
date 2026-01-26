@@ -67,3 +67,6 @@ class LLMProcessingStrategy(BaseStrategy):
         except Exception as e:
             self.logger.error(f"Unhandled error calling LLM: {e}")
             return None
+
+
+# TODO create custom processing strategy

@@ -1,7 +1,7 @@
 # Standard library imports
 import os
 import json
-from typing import Any
+from typing import Any, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Third part library imports
@@ -25,7 +25,7 @@ class MediaProcessor:
         self.whisper_model = whisper_model
         self.logger = setup_logger(self.__class__.__name__)
 
-    def _download_file(self, working_dir: str, file_id: str):
+    def _download_file(self, working_dir: str, file_id: str) -> Tuple[str, bool]:
         """
         Queries API for file download based on file_id and returns path of downloaded file
         """
@@ -39,28 +39,37 @@ class MediaProcessor:
                 file = self.drive_client.CreateFile({"id": file_id})
                 file.GetContentFile(file_path)
                 self.logger.debug(f"Successfully downloaded file to: {file_path}")
-                return file_path
+                return file_path, True
             except ApiRequestError:
                 self.logger.error(f"Request error while downloading: {file_id}")
+                return file_path, False
             except Exception as e:
                 self.logger.error(f"Unhandled exception downloading: {file_id}: {e}")
+                raise
         else:
-            return file_path
+            self.logger.info("File exists...")  # TODO: better log message
+            return file_path, True
 
-    def _transcribe_file(self, file_path: str) -> str | list[Any]:
+    def _transcribe_file(self, file_path: str) -> str:
         """
         Converts audio/video to text
         """
         try:
             self.logger.info(f"Transcribing file: {file_path} ...")
-            result = self.whisper_model.transcribe(file_path)
-            self.logger.debug(f"Transcription: {result['text']}")
+            result = self.whisper_model.transcribe(file_path)["text"]
+
+            if len(result) == 0:
+                raise ValueError("Model returned empty transcription...")
+            if len(result) < 20:
+                raise ValueError("Possible malformed transcription...")
+
+            self.logger.debug(f"Transcription: {result}")
         except Exception as e:
             self.logger.error(f"Error transcribing file: {e}")
 
-        return result["text"]
+        return result
 
-    def download_media(self, max_workers=2) -> list[str]:
+    def download_media(self, max_workers=2) -> Tuple[list, list]:
         """
         Launches batch download using thread pool
         """
@@ -68,7 +77,7 @@ class MediaProcessor:
         os.makedirs(TMP_DIR, exist_ok=True)
 
         self.logger.debug(f"Starting batch download for files: {self.file_ids}")
-        output_list = []
+        success, fails = []
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             future_dict = {
                 executor.submit(self._download_file, TMP_DIR, file_id): file_id
@@ -79,16 +88,17 @@ class MediaProcessor:
                 file_id = future_dict[future]
                 try:
                     result = future.result()
-                    if result:
+                    if result[1] is True:
                         self.logger.info(f"Successfully downloaded {file_id}")
                         self.logger.debug(f"Result: {result}")
-                        output_list.append(result)
+                        success.append(result)
                     else:
                         self.logger.warning(f"Download failed for {file_id}")
+                        fails.append(result)
                 except Exception as e:
                     self.logger.error(f"Error in thread for {file_id}: {e}")
 
-        return output_list
+        return success, fails
 
     def process_media(self, file_path_list: list[str]):
         """
@@ -113,8 +123,8 @@ class MediaProcessor:
     def run(self):
         # entry point to download, process, and update
         self.logger.debug(f"Running processor for payload: {self.file_ids}")
-        path_list = self.download_media(max_workers=len(self.file_ids))
-        self.process_media(path_list)
+        path_list = self.download_media(max_workers=min(len(self.file_ids), 4))
+        self.process_media(path_list[0])
 
 
 def process_media_job(task_data: dict):
