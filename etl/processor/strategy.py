@@ -50,23 +50,23 @@ class LLMProcessingStrategy(BaseStrategy):
         """
         try:
             self.logger.info("Sending payload...")
-            response = ollama.generate(model=self.model, prompt=prompt)
+            output = ollama.generate(model=self.model, prompt=prompt)
             self.logger.info("Response received.")
 
-            raw = response["response"].strip()
+            raw = output["response"].strip()
             cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw)
 
             parsed = json.loads(cleaned)
-            self.logger.debug(f"Parsed response: {json.dumps(parsed, indent=2)}")
+            self.logger.debug(f"Model output: \n\n{json.dumps(parsed, indent=2)}\n")
 
             return parsed
         except json.JSONDecodeError as e:
             self.logger.error(f"Invalid JSON response: {e}")
-            self.logger.debug(f"Raw content: {response['response']}")
-            return None
+            self.logger.debug(f"Raw content: \n\n{output['response']}\n")
+            raise
         except Exception as e:
             self.logger.error(f"Unhandled error calling LLM: {e}")
-            return None
+            raise
 
 
 # TODO create custom processing strategy

@@ -18,11 +18,19 @@ from utils.logging import setup_logger
 
 
 class MediaProcessor:
-    def __init__(self, file_ids: list[str], drive_client, redis_client, whisper_model):
+    def __init__(
+        self,
+        file_ids: list[str],
+        drive_client,
+        redis_client,
+        whisper_model,
+        output_queue,
+    ):
         self.file_ids = file_ids
         self.drive_client = drive_client
         self.redis_client = redis_client
         self.whisper_model = whisper_model
+        self.output_queue = output_queue
         self.logger = setup_logger(self.__class__.__name__)
 
     def _download_file(self, working_dir: str, file_id: str) -> Tuple[str, bool]:
@@ -50,35 +58,37 @@ class MediaProcessor:
             self.logger.info("File exists...")  # TODO: better log message
             return file_path, True
 
-    def _transcribe_file(self, file_path: str) -> str:
+    def _transcribe_file(self, file_path: str) -> Tuple[str, str, str | None]:
         """
         Converts audio/video to text
         """
         try:
             self.logger.info(f"Transcribing file: {file_path} ...")
-            result = self.whisper_model.transcribe(file_path)["text"]
+            output = self.whisper_model.transcribe(file_path)["text"]
 
-            if len(result) == 0:
-                raise ValueError("Model returned empty transcription...")
-            if len(result) < 20:
-                raise ValueError("Possible malformed transcription...")
+            if len(output) == 0:
+                return file_path, output, "Model returned empty transcription"
+            if len(output) < 20:  # TODO: refactor hardcoded validation
+                return file_path, output, "Possible malfomed transcription"
 
-            self.logger.debug(f"Transcription: {result}")
+            self.logger.debug(f"Transcription: \n***\n{output}\n***")
+            return file_path, output, None
         except Exception as e:
             self.logger.error(f"Error transcribing file: {e}")
+            raise
 
-        return result
-
-    def download_media(self, max_workers=2) -> Tuple[list, list]:
+    def download_media(self, worker_size=2) -> Tuple[list, list]:
         """
-        Launches batch download using thread pool
+        Launches batch download using thread pool. Returns tuple containing lists of successful and failed downloads.
         """
         TMP_DIR = "tmp/media"
         os.makedirs(TMP_DIR, exist_ok=True)
 
         self.logger.debug(f"Starting batch download for files: {self.file_ids}")
-        success, fails = []
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        succeeded, failed = [], []
+        with ThreadPoolExecutor(
+            max_workers=min(len(self.file_ids), worker_size)
+        ) as executor:
             future_dict = {
                 executor.submit(self._download_file, TMP_DIR, file_id): file_id
                 for file_id in self.file_ids
@@ -87,44 +97,68 @@ class MediaProcessor:
             for future in as_completed(future_dict):
                 file_id = future_dict[future]
                 try:
-                    result = future.result()
-                    if result[1] is True:
+                    result, isDownloaded = future.result()
+                    if isDownloaded:
                         self.logger.info(f"Successfully downloaded {file_id}")
                         self.logger.debug(f"Result: {result}")
-                        success.append(result)
+                        succeeded.append(result)
                     else:
                         self.logger.warning(f"Download failed for {file_id}")
-                        fails.append(result)
+                        failed.append(result)
                 except Exception as e:
                     self.logger.error(f"Error in thread for {file_id}: {e}")
 
-        return success, fails
+        return succeeded, failed
 
-    def process_media(self, file_path_list: list[str]):
+    def transcribe(self, file_path_list: list[str]) -> Tuple[list, list]:
+        result_list = [self._transcribe_file(file) for file in file_path_list]
+        successful = [
+            (file_path, output)
+            for file_path, output, reason in result_list
+            if reason is None
+        ]
+        failed = [
+            (file_path, output, reason)
+            for file_path, output, reason in result_list
+            if reason is not None
+        ]
+
+        return successful, failed
+
+    def process(self, transcript_list: list[Tuple]):
         """
         Processes data based off strategy and pushes structured data to redis queue
         """
         strategy = LLMProcessingStrategy()
-        for file_path in file_path_list:
+        results = {}
+
+        for file_path, transcript in transcript_list:
             try:
-                transcript = self._transcribe_file(file_path)
+                self.logger.info(f"Proccessing transcript of media file {file_path}...")
                 structured_data = strategy.process(transcript)
-
                 serialized = json.dumps(structured_data)
-                queue_name = RedisSettings.NOTION_QUEUE
-
-                self.logger.info(f"Sending structured data to queue:{queue_name}")
-                self.redis_client.rpush(queue_name, serialized)
-                self.logger.debug(f"Payload sent: {serialized}")
+                results[file_path] = serialized
 
             except Exception as e:
                 self.logger.error(f"Unhandled exception while processing: {e}")
+                raise
+
+        return results
 
     def run(self):
-        # entry point to download, process, and update
-        self.logger.debug(f"Running processor for payload: {self.file_ids}")
-        path_list = self.download_media(max_workers=min(len(self.file_ids), 4))
-        self.process_media(path_list[0])
+        """
+        Orchestrates download, transcription, processing, queueing, and cleanup
+        """
+        self.logger.info("Running processor...")
+        succeeded_paths, failed_paths = self.download_media()
+        valid_transcripts, invalid_transcripts = self.transcribe(succeeded_paths)
+        path_data_pair = self.process(valid_transcripts)
+
+        self.redis_client.rpush(self.output_queue, json.dumps(path_data_pair))
+
+        # TODO: handle failed downloads.
+        # TODO: handle failed transcriptions. (Write to file for review)
+        # TODO: handle cleanup
 
 
 def process_media_job(task_data: dict):
@@ -134,8 +168,11 @@ def process_media_job(task_data: dict):
     drive_client = setup_drive_client()
     redis_client = setup_redis_client()
     whisper_model = whisper.load_model(AppSettings.WHISPER_MODEL)
+    egress = RedisSettings.NOTION_QUEUE
 
-    processor = MediaProcessor(file_ids, drive_client, redis_client, whisper_model)
+    processor = MediaProcessor(
+        file_ids, drive_client, redis_client, whisper_model, egress
+    )
     processor.run()
 
 
