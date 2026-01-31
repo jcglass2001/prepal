@@ -23,7 +23,7 @@ class LLMSettings:
     HOST = _config["llm"]["host"]
     PROVIDER = _config["llm"]["provider"]
     MODEL = _config["llm"]["model"]
-    USE_LLM = _config["llm"]["enabled"]
+    ENABLED = _config["llm"]["enabled"]
 
 
 class DriveSettings:
@@ -39,4 +39,5 @@ class DriveSettings:
 
 class AppSettings:
     LOG_LEVEL = _config["app"]["logging"]
+    SCHEMA_FILENAME = _config["app"]["validation"]["schema_filename"]
     WHISPER_MODEL = _config["whisper"]["model"]

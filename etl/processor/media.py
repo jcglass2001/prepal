@@ -1,7 +1,6 @@
 # Standard library imports
 import os
 import json
-from typing import Any, Tuple
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # Third part library imports
@@ -11,8 +10,8 @@ from pydrive2.files import ApiRequestError
 
 
 # Custom moudle imports
-from config.settings import AppSettings, RedisSettings
-from processor.strategy import LLMProcessingStrategy
+from config.settings import AppSettings, LLMSettings, RedisSettings
+from processor.strategy import CustomProcessingStrategy, LLMProcessingStrategy
 from utils.client import setup_drive_client, setup_redis_client
 from utils.logging import setup_logger
 
@@ -33,7 +32,7 @@ class MediaProcessor:
         self.output_queue = output_queue
         self.logger = setup_logger(self.__class__.__name__)
 
-    def _download_file(self, working_dir: str, file_id: str) -> Tuple[str, bool]:
+    def _download_file(self, working_dir: str, file_id: str) -> tuple[str, bool]:
         """
         Queries API for file download based on file_id and returns path of downloaded file
         """
@@ -43,7 +42,6 @@ class MediaProcessor:
         file_path = os.path.join(working_dir, f"{file_id}.mp4")
         if not os.path.exists(file_path):
             try:
-                self.logger.info(f"Downloading file: {file_id}")
                 file = self.drive_client.CreateFile({"id": file_id})
                 file.GetContentFile(file_path)
                 self.logger.debug(f"Successfully downloaded file to: {file_path}")
@@ -55,10 +53,10 @@ class MediaProcessor:
                 self.logger.error(f"Unhandled exception downloading: {file_id}: {e}")
                 raise
         else:
-            self.logger.info("File exists...")  # TODO: better log message
+            self.logger.info(f"File '{file_path}' exists...")
             return file_path, True
 
-    def _transcribe_file(self, file_path: str) -> Tuple[str, str, str | None]:
+    def _transcribe_file(self, file_path: str) -> tuple[str, str, str | None]:
         """
         Converts audio/video to text
         """
@@ -66,9 +64,10 @@ class MediaProcessor:
             self.logger.info(f"Transcribing file: {file_path} ...")
             output = self.whisper_model.transcribe(file_path)["text"]
 
+            # TODO: Impelement additional validation
             if len(output) == 0:
                 return file_path, output, "Model returned empty transcription"
-            if len(output) < 20:  # TODO: refactor hardcoded validation
+            if len(output) < 20:
                 return file_path, output, "Possible malfomed transcription"
 
             self.logger.debug(f"Transcription: \n***\n{output}\n***")
@@ -77,7 +76,7 @@ class MediaProcessor:
             self.logger.error(f"Error transcribing file: {e}")
             raise
 
-    def download_media(self, worker_size=2) -> Tuple[list, list]:
+    def download_media(self, worker_size=2) -> tuple[list, list]:
         """
         Launches batch download using thread pool. Returns tuple containing lists of successful and failed downloads.
         """
@@ -107,10 +106,10 @@ class MediaProcessor:
                         failed.append(result)
                 except Exception as e:
                     self.logger.error(f"Error in thread for {file_id}: {e}")
-
+                    raise
         return succeeded, failed
 
-    def transcribe(self, file_path_list: list[str]) -> Tuple[list, list]:
+    def transcribe(self, file_path_list: list[str]) -> tuple[list, list]:
         result_list = [self._transcribe_file(file) for file in file_path_list]
         successful = [
             (file_path, output)
@@ -125,11 +124,15 @@ class MediaProcessor:
 
         return successful, failed
 
-    def process(self, transcript_list: list[Tuple]):
+    def process(self, transcript_list: list[tuple[str, str]]):
         """
         Processes data based off strategy and pushes structured data to redis queue
         """
-        strategy = LLMProcessingStrategy()
+        strategy = (
+            LLMProcessingStrategy()
+            if LLMSettings.ENABLED
+            else CustomProcessingStrategy()
+        )
         results = {}
 
         for file_path, transcript in transcript_list:
@@ -155,6 +158,7 @@ class MediaProcessor:
         path_data_pair = self.process(valid_transcripts)
 
         self.redis_client.rpush(self.output_queue, json.dumps(path_data_pair))
+        self.logger.info("Processed data pushed to redis instance...")
 
         # TODO: handle failed downloads.
         # TODO: handle failed transcriptions. (Write to file for review)
@@ -180,8 +184,8 @@ if __name__ == "__main__":
     data = {
         "file_ids": [
             "1GlpbJ5wxjXynfzkADdtK867t_O-5yEZw",
-            "1Xt1o0W0sF-z_MUtfXi-e9i3qVuQ9lLBt",
-            "1LBG9wz9H1nQsinQSWcHKJFExPKmM_xzU",
+            # "1Xt1o0W0sF-z_MUtfXi-e9i3qVuQ9lLBt",
+            # "1LBG9wz9H1nQsinQSWcHKJFExPKmM_xzU",
         ]
     }
     process_media_job(data)

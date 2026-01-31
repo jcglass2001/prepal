@@ -4,11 +4,13 @@ import json
 import re
 
 # Third-party imports
+from jsonschema import ValidationError, exceptions
 import ollama
 
 # Custom imports
 from config.settings import LLMSettings
 from utils.logging import setup_logger
+from utils.validate import validate_json
 
 
 class BaseStrategy(ABC):
@@ -30,6 +32,8 @@ class LLMProcessingStrategy(BaseStrategy):
         self.model = LLMSettings.MODEL
         self.host = LLMSettings.HOST
 
+        self.logger.info("Initialized LLM processing...")
+
     def process(self, transcript: str):
         """
         Offloads transcript processing to hosted LLM service
@@ -38,9 +42,9 @@ class LLMProcessingStrategy(BaseStrategy):
         prompt = f"""
         Given the following transcript of a recipe video, extract:
 
-        - Recipe Title
-        - Ingredients: list
-        - Instructions: list
+        - recipe_title: string
+        - ingredients: list
+        - instructions: list
 
         Provide ingredients without brand names or unnecessary information. 
 
@@ -49,14 +53,15 @@ class LLMProcessingStrategy(BaseStrategy):
         Transcript: {transcript}
         """
         try:
-            self.logger.info("Sending payload...")
+            self.logger.info("Sending payload to Ollama service...")
             output = ollama.generate(model=self.model, prompt=prompt)
-            self.logger.info("Response received.")
 
             raw = output["response"].strip()
             cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw)
 
             parsed = json.loads(cleaned)
+            validate_json(parsed)
+
             self.logger.debug(f"Model output: \n\n{json.dumps(parsed, indent=2)}\n")
 
             return parsed
@@ -64,9 +69,22 @@ class LLMProcessingStrategy(BaseStrategy):
             self.logger.error(f"Invalid JSON response: {e}")
             self.logger.debug(f"Raw content: \n\n{output['response']}\n")
             raise
+        except exceptions.ValidationError as e:
+            self.logger.error(f"Schema validation failed: {e.message}")
+            self.logger.debug(f"Invalid payload: \n{json.dumps(parsed, indent=2)}")
+            raise
         except Exception as e:
             self.logger.error(f"Unhandled error calling LLM: {e}")
             raise
 
 
-# TODO create custom processing strategy
+# TODO: implement alternate/manual processing strategy
+
+
+class CustomProcessingStrategy(BaseStrategy):
+    def __init__(self) -> None:
+        super().__init__()
+        self.logger.info("Initialized custom processing...")
+
+    def process(self, transcript: str):
+        pass
