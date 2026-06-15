@@ -32,7 +32,7 @@ class DriveSettings:
     CLIENT_SETTINGS = {
         "client_config_backend": "service",
         "service_config": {
-            "client_json_file_path": "service-secrets.json",
+            "client_json_file_path": _config["drive"]["secrets_path"],
         },
     }
 

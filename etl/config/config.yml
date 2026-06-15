@@ -1,17 +1,18 @@
 redis:
-  host: ${REDIS_HOST}
+  host: 
   port: ${REDIS_PORT}
   media_queue: "media:queue"
   notion_queue: "notion:queue"
 
 drive:
+  secrets_path: ${SECRETS_PATH}
   target_folder: "Tiktok Recipes"
   polling:
     interval: 500
 llm:
   host: ${LLM_HOST}
   provider: mistral
-  model: ministral-3:3b
+  model: mistral
   enabled: true
 
 whisper:
